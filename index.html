@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Northwind Reflex Trial</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- INTRO -->
+  <section id="screenIntro" class="screen intro active">
+    <button id="btnStart" class="btn primary big">Start Challenge</button>
+  </section>
+
+  <!-- TITLE -->
+  <section id="screenTitle" class="screen title">
+    <div class="card">
+      <h1>Northwind Reflex Trial</h1>
+      <p class="sub">
+        The snow is coming fast. Follow the directions as they flash—one second per command.
+        Miss three times, and the blizzard wins.
+      </p>
+      <div class="rules">
+        <div class="rule"><b>100</b> prompts</div>
+        <div class="rule"><b>1.0s</b> per prompt</div>
+        <div class="rule"><b>3</b> misses = loss</div>
+      </div>
+      <button id="btnPlay" class="btn primary">Play Game</button>
+    </div>
+  </section>
+
+  <!-- GAME -->
+  <section id="screenGame" class="screen game">
+    <header class="topbar">
+      <div class="pill">
+        <div class="label">Progress</div>
+        <div id="progress" class="value">0 / 100</div>
+      </div>
+
+      <div class="pill">
+        <div class="label">Misses</div>
+        <div id="misses" class="value">0 / 3</div>
+      </div>
+
+      <button id="btnRestart" class="btn ghost">Restart</button>
+    </header>
+
+    <main class="wrap">
+      <div class="panel">
+        <div class="promptBox">
+          <div class="promptLabel">PROMPT</div>
+          <div id="prompt" class="prompt">—</div>
+          <div id="timer" class="timer">1.00</div>
+        </div>
+
+        <div id="feedback" class="feedback">Tap the matching arrow.</div>
+
+        <div class="pad">
+          <button class="arrow up" data-dir="UP" aria-label="Up">▲</button>
+
+          <div class="row">
+            <button class="arrow left" data-dir="LEFT" aria-label="Left">◀</button>
+            <button class="arrow down" data-dir="DOWN" aria-label="Down">▼</button>
+            <button class="arrow right" data-dir="RIGHT" aria-label="Right">▶</button>
+          </div>
+        </div>
+
+        <div class="tiny">Tip: You can also use your keyboard arrow keys on desktop.</div>
+      </div>
+    </main>
+  </section>
+
+  <!-- WIN MODAL -->
+  <div id="modalWin" class="modal" aria-hidden="true">
+    <div class="modalBox">
+      <h2>Trial Complete</h2>
+      <p>You held your pace through the storm.</p>
+
+      <div class="codeBox">
+        <div class="codeLabel">PASSCODE</div>
+        <div class="codeValue">SNOWCOVERSWHATBLED</div>
+      </div>
+
+      <div class="modalBtns">
+        <button id="btnCopy" class="btn primary">Copy Code</button>
+        <button id="btnAgain" class="btn ghost">Play Again</button>
+        <button id="btnBackTitle" class="btn ghost">Back to Title</button>
+      </div>
+
+      <div id="copyMsg" class="copyMsg"></div>
+    </div>
+  </div>
+
+  <!-- LOSE MODAL -->
+  <div id="modalLose" class="modal" aria-hidden="true">
+    <div class="modalBox">
+      <h2>Blizzard Wins</h2>
+      <p>You hit <b>3 misses</b>.</p>
+
+      <div class="modalBtns">
+        <button id="btnRetry" class="btn primary">Retry</button>
+        <button id="btnLoseTitle" class="btn ghost">Back to Title</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
