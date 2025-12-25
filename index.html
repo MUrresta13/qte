@@ -71,24 +71,27 @@
     </main>
   </section>
 
-  <!-- WIN MODAL -->
+  <!-- WIN (STEP 1) MODAL -->
   <div id="modalWin" class="modal" aria-hidden="true">
     <div class="modalBox">
-      <h2>Trial Complete</h2>
-      <p>You held your pace through the storm.</p>
-
-      <div class="codeBox">
-        <div class="codeLabel">PASSCODE</div>
-        <div class="codeValue">SNOWCOVERSWHATBLED</div>
-      </div>
+      <h2>Success!</h2>
+      <p>You cleared all prompts.</p>
 
       <div class="modalBtns">
-        <button id="btnCopy" class="btn primary">Copy Code</button>
-        <button id="btnAgain" class="btn ghost">Play Again</button>
+        <button id="btnClaim" class="btn primary">Claim Grand Prize</button>
         <button id="btnBackTitle" class="btn ghost">Back to Title</button>
       </div>
+    </div>
+  </div>
 
-      <div id="copyMsg" class="copyMsg"></div>
+  <!-- GRAND PRIZE (NON-CLOSABLE) OVERLAY -->
+  <div id="modalGrand" class="grand" aria-hidden="true">
+    <canvas id="confetti" class="confetti" aria-hidden="true"></canvas>
+
+    <div class="grandCard">
+      <div class="grandTitle">CONGRATULATIONS!!!</div>
+      <div class="grandText">YOU ARE THE GRAND PRIZE WINNER!!</div>
+      <div class="grandText">MERRY CHRISTMAS!</div>
     </div>
   </div>
 
