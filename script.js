@@ -4,7 +4,9 @@
 const TOTAL_PROMPTS = 100;
 const TIME_PER_PROMPT_MS = 1000;
 const MAX_MISSES = 3;
-const PASSCODE = "SNOWCOVERSWHATBLED";
+
+// Must exist in repo root
+const WINNER_AUDIO_SRC = "Winner.mp3";
 
 const DIRS = ["UP","DOWN","LEFT","RIGHT"];
 const SYMBOL = { UP:"▲", DOWN:"▼", LEFT:"◀", RIGHT:"▶" };
@@ -28,29 +30,39 @@ const feedbackEl = document.getElementById("feedback");
 const arrowBtns = Array.from(document.querySelectorAll(".arrow"));
 
 const modalWin = document.getElementById("modalWin");
-const btnCopy = document.getElementById("btnCopy");
-const btnAgain = document.getElementById("btnAgain");
+const btnClaim = document.getElementById("btnClaim");
 const btnBackTitle = document.getElementById("btnBackTitle");
-const copyMsg = document.getElementById("copyMsg");
 
 const modalLose = document.getElementById("modalLose");
 const btnRetry = document.getElementById("btnRetry");
 const btnLoseTitle = document.getElementById("btnLoseTitle");
 
-/* ===== STATE ===== */
-let idx = 0;                 // how many prompts completed
-let misses = 0;
-let current = null;          // current direction string
-let active = false;          // game running?
-let answered = false;        // already answered this prompt?
+// Grand prize overlay + confetti
+const modalGrand = document.getElementById("modalGrand");
+const confettiCanvas = document.getElementById("confetti");
+const cctx = confettiCanvas.getContext("2d");
 
-let promptTimer = null;      // setTimeout
-let tickTimer = null;        // interval for countdown
-let endAt = 0;               // timestamp for countdown
+/* ===== STATE ===== */
+let idx = 0;
+let misses = 0;
+let current = null;
+let active = false;
+let answered = false;
+
+let promptTimer = null;
+let tickTimer = null;
+let endAt = 0;
+
+// Winner audio (plays once on claim)
+let winnerAudio = null;
+
+// Confetti
+let confetti = [];
+let confettiRAF = null;
 
 /* ===== UI helpers ===== */
 function showScreen(s){
-  hideAllModals();
+  hideAllOverlays();
   screenIntro.classList.remove("active");
   screenTitle.classList.remove("active");
   screenGame.classList.remove("active");
@@ -73,10 +85,20 @@ function hideModal(el){
   el.classList.remove("show");
   el.setAttribute("aria-hidden","true");
 }
-function hideAllModals(){
+
+function showGrand(){
+  modalGrand.classList.add("show");
+  modalGrand.setAttribute("aria-hidden","false");
+}
+function hideGrand(){
+  modalGrand.classList.remove("show");
+  modalGrand.setAttribute("aria-hidden","true");
+}
+
+function hideAllOverlays(){
   hideModal(modalWin);
   hideModal(modalLose);
-  copyMsg.textContent = "";
+  hideGrand();
 }
 
 function updateStats(){
@@ -97,14 +119,12 @@ function clearTimers(){
 function startCountdown(){
   endAt = Date.now() + TIME_PER_PROMPT_MS;
 
-  // tick about 20x/sec (smooth enough)
   tickTimer = setInterval(() => {
     const msLeft = Math.max(0, endAt - Date.now());
     timerEl.textContent = (msLeft / 1000).toFixed(2);
   }, 50);
 
   promptTimer = setTimeout(() => {
-    // time ran out
     if(!active || answered) return;
     answered = true;
     registerMiss("Too slow.");
@@ -136,8 +156,6 @@ function registerHit(){
   idx++;
   setFeedback("Correct.", "ok");
   clearTimers();
-
-  // short delay so it feels responsive
   setTimeout(() => nextPrompt(), 120);
 }
 
@@ -151,14 +169,12 @@ function registerMiss(reason){
     lose();
     return;
   }
-
   setTimeout(() => nextPrompt(), 160);
 }
 
 function handleInput(dir){
   if(!active) return;
   if(answered) return;
-
   answered = true;
 
   if(dir === current){
@@ -172,6 +188,7 @@ function win(){
   active = false;
   clearTimers();
   updateStats();
+
   promptEl.textContent = "✓";
   timerEl.textContent = "0.00";
   showModal(modalWin);
@@ -181,14 +198,15 @@ function lose(){
   active = false;
   clearTimers();
   updateStats();
+
   promptEl.textContent = "✕";
   timerEl.textContent = "0.00";
   showModal(modalLose);
 }
 
 function startGame(){
-  hideAllModals();
-  clearTimers();
+  hideAllOverlays();
+  stopConfetti();
 
   idx = 0;
   misses = 0;
@@ -201,26 +219,130 @@ function startGame(){
   setFeedback("Tap the matching arrow.", "");
   updateStats();
 
-  // small delay before first prompt
   setTimeout(() => nextPrompt(), 300);
 }
 
-/* ===== Clipboard ===== */
-async function copyToClipboard(text){
-  if(navigator.clipboard?.writeText){
-    await navigator.clipboard.writeText(text);
-    return true;
+/* ===== Winner audio + Grand prize overlay ===== */
+function ensureWinnerAudio(){
+  if(!winnerAudio){
+    winnerAudio = new Audio(WINNER_AUDIO_SRC);
+    winnerAudio.preload = "auto";
   }
-  const ta = document.createElement("textarea");
-  ta.value = text;
-  ta.style.position = "fixed";
-  ta.style.left = "-9999px";
-  document.body.appendChild(ta);
-  ta.focus();
-  ta.select();
-  const ok = document.execCommand("copy");
-  document.body.removeChild(ta);
-  return ok;
+}
+
+async function claimGrandPrize(){
+  // Hide the "Success" modal, then show the permanent overlay
+  hideModal(modalWin);
+
+  ensureWinnerAudio();
+
+  // Attempt to play Winner.mp3 once
+  // (User gesture is this click, so iOS allows it)
+  try{
+    winnerAudio.currentTime = 0;
+    winnerAudio.loop = false;
+    await winnerAudio.play();
+  }catch{
+    // If audio fails, still proceed to grand overlay
+  }
+
+  showGrand();
+  startConfetti();
+}
+
+/* ===== Confetti ===== */
+function resizeConfettiCanvas(){
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.floor(window.innerWidth * dpr);
+  const h = Math.floor(window.innerHeight * dpr);
+  confettiCanvas.width = w;
+  confettiCanvas.height = h;
+  confettiCanvas.style.width = "100%";
+  confettiCanvas.style.height = "100%";
+  cctx.setTransform(dpr,0,0,dpr,0,0);
+}
+
+function rand(min, max){ return min + Math.random() * (max - min); }
+
+function spawnConfetti(count=220){
+  confetti = [];
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+
+  for(let i=0;i<count;i++){
+    confetti.push({
+      x: rand(0, w),
+      y: rand(-h, 0),
+      vx: rand(-40, 40),
+      vy: rand(120, 300),
+      rot: rand(0, Math.PI*2),
+      vr: rand(-4, 4),
+      size: rand(6, 14),
+      hue: rand(0, 360),
+      alpha: rand(0.7, 1.0),
+      shape: Math.random() < 0.5 ? "rect" : "circle"
+    });
+  }
+}
+
+function drawConfetti(dt){
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+
+  cctx.clearRect(0,0,w,h);
+
+  for(const p of confetti){
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.rot += p.vr * dt;
+
+    // wrap
+    if(p.y > h + 30){
+      p.y = rand(-120, -30);
+      p.x = rand(0, w);
+    }
+    if(p.x < -30) p.x = w + 30;
+    if(p.x > w + 30) p.x = -30;
+
+    cctx.save();
+    cctx.translate(p.x, p.y);
+    cctx.rotate(p.rot);
+    cctx.globalAlpha = p.alpha;
+    cctx.fillStyle = `hsl(${p.hue} 95% 60%)`;
+
+    if(p.shape === "rect"){
+      cctx.fillRect(-p.size/2, -p.size/2, p.size, p.size*0.65);
+    }else{
+      cctx.beginPath();
+      cctx.arc(0,0,p.size*0.45,0,Math.PI*2);
+      cctx.fill();
+    }
+    cctx.restore();
+  }
+}
+
+function startConfetti(){
+  resizeConfettiCanvas();
+  spawnConfetti(260);
+
+  let last = performance.now();
+  function loop(now){
+    // keep looping forever
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    drawConfetti(dt);
+    confettiRAF = requestAnimationFrame(loop);
+  }
+  if(confettiRAF) cancelAnimationFrame(confettiRAF);
+  confettiRAF = requestAnimationFrame(loop);
+}
+
+function stopConfetti(){
+  if(confettiRAF){
+    cancelAnimationFrame(confettiRAF);
+    confettiRAF = null;
+  }
+  confetti = [];
 }
 
 /* ===== Events ===== */
@@ -232,30 +354,28 @@ arrowBtns.forEach(b => {
   b.addEventListener("click", () => handleInput(b.dataset.dir));
 });
 
-// keyboard arrows for desktop
 window.addEventListener("keydown", (e) => {
   if(!active) return;
-  const key = e.key;
-  if(key === "ArrowUp") handleInput("UP");
-  if(key === "ArrowDown") handleInput("DOWN");
-  if(key === "ArrowLeft") handleInput("LEFT");
-  if(key === "ArrowRight") handleInput("RIGHT");
+  if(e.key === "ArrowUp") handleInput("UP");
+  if(e.key === "ArrowDown") handleInput("DOWN");
+  if(e.key === "ArrowLeft") handleInput("LEFT");
+  if(e.key === "ArrowRight") handleInput("RIGHT");
 });
 
-btnCopy.addEventListener("click", async () => {
-  try{
-    const ok = await copyToClipboard(PASSCODE);
-    copyMsg.textContent = ok ? "Copied to clipboard." : "Copy failed — copy manually.";
-  }catch{
-    copyMsg.textContent = "Copy failed — copy manually.";
+// Win step-1 buttons
+btnClaim.addEventListener("click", () => claimGrandPrize());
+btnBackTitle.addEventListener("click", () => { hideAllOverlays(); showScreen(screenTitle); });
+
+// Lose buttons
+btnRetry.addEventListener("click", () => startGame());
+btnLoseTitle.addEventListener("click", () => { hideAllOverlays(); showScreen(screenTitle); });
+
+// Keep confetti full-screen on rotate/resize
+window.addEventListener("resize", () => {
+  if(modalGrand.classList.contains("show")){
+    resizeConfettiCanvas();
   }
 });
-
-btnAgain.addEventListener("click", () => startGame());
-btnBackTitle.addEventListener("click", () => { hideAllModals(); showScreen(screenTitle); });
-
-btnRetry.addEventListener("click", () => startGame());
-btnLoseTitle.addEventListener("click", () => { hideAllModals(); showScreen(screenTitle); });
 
 /* ===== Boot ===== */
 showScreen(screenIntro);
