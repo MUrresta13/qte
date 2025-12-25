@@ -211,13 +211,49 @@ h1{ margin:0 0 10px; font-size: clamp(2.1rem, 4.8vw, 3.2rem); }
 }
 .modalBtns{ display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
 
-.codeBox{
-  margin-top:12px;
-  border-radius:16px;
-  background:#060914;
-  border:1px solid rgba(255,255,255,.14);
-  padding:12px;
+/* GRAND PRIZE FULLSCREEN (non-closable) */
+.grand{
+  position:fixed;
+  inset:0;
+  display:none;
+  background:#000;
+  z-index:100;
 }
-.codeLabel{ color: rgba(255,255,255,.70); font-size:.85rem; }
-.codeValue{ margin-top:6px; font-size:1.2rem; font-weight:1000; letter-spacing:1.2px; }
-.copyMsg{ margin-top:10px; color: rgba(255,255,255,.80); }
+.grand.show{ display:block; }
+
+.confetti{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  display:block;
+}
+
+.grandCard{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform: translate(-50%, -50%);
+  width:min(900px, 92vw);
+  border-radius: 26px;
+  background: rgba(10, 14, 28, .85);
+  border:1px solid rgba(255,255,255,.18);
+  box-shadow: 0 22px 90px rgba(0,0,0,.75);
+  padding: 22px;
+  text-align:center;
+  backdrop-filter: blur(10px);
+}
+
+.grandTitle{
+  font-size: clamp(1.9rem, 6vw, 3.3rem);
+  font-weight: 1200;
+  letter-spacing: .6px;
+  margin-bottom: 8px;
+}
+
+.grandText{
+  font-size: clamp(1.2rem, 4.2vw, 2.1rem);
+  font-weight: 1000;
+  margin-top: 6px;
+  color: rgba(255,255,255,.92);
+}
